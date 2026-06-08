@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WWW-YOUTOBE.COM</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #FFF8E7;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            width: 100%;
+            background: #000;
+            padding: 20px 0;
+            text-align: center;
+            border-bottom: 3px solid #FFD966;
+        }
+
+        .header h1 {
+            color: #FFD966;
+            font-size: clamp(32px, 8vw, 90px);
+            font-weight: 800;
+            letter-spacing: 3px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 7vw 4vw;
+        }
+
+        .video-box {
+            width: min(90vw, 760px);
+            aspect-ratio: 16/9;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border-radius: 24px;
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.25);
+            border: 2px solid #FFD966;
+            overflow: hidden;
+        }
+
+        .play-btn {
+            width: 90px;
+            height: 90px;
+            background: #FFD966;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .play-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: rgba(255, 217, 102, 0.4);
+            transform: translate(-50%, -50%) scale(0.8);
+            opacity: 0;
+            transition: all 0.4s ease;
+            z-index: -1;
+        }
+
+        .play-btn:hover::before {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.3);
+        }
+
+        .play-btn:hover {
+            transform: scale(1.08);
+            background: #FFC107;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+        }
+
+        .play-icon {
+            width: 0;
+            height: 0;
+            border-top: 20px solid transparent;
+            border-bottom: 20px solid transparent;
+            border-left: 32px solid #000;
+            margin-left: 8px;
+            filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.2));
+        }
+
+        @media (max-width: 640px) {
+            .play-btn {
+                width: 70px;
+                height: 70px;
+            }
+            .play-icon {
+                border-top: 14px solid transparent;
+                border-bottom: 14px solid transparent;
+                border-left: 24px solid #000;
+                margin-left: 5px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .play-btn {
+                width: 60px;
+                height: 60px;
+            }
+            .play-icon {
+                border-top: 12px solid transparent;
+                border-bottom: 12px solid transparent;
+                border-left: 20px solid #000;
+                margin-left: 4px;
+            }
+        }
+
+        .loading-video {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            color: #FFD966;
+            font-size: clamp(16px, 4vw, 24px);
+            font-weight: 600;
+            text-align: center;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            border-radius: 20px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 217, 102, 0.2);
+            border-top: 5px solid #FFD966;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .footer {
+            text-align: center;
+            padding: 25px 20px;
+            background: #000;
+            color: #FFD966;
+            border-top: 2px solid #FFD966;
+            margin-top: auto;
+        }
+
+        .footer p {
+            font-size: clamp(13px, 3vw, 16px);
+            font-weight: 500;
+            line-height: 1.5;
+            margin-bottom: 6px;
+        }
+
+        .footer p:first-child {
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        /* Popup styles - Shopee Popup */
+        .popup-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.92);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 20px;
+            backdrop-filter: blur(6px);
+        }
+
+        .popup-container {
+            position: relative;
+            width: min(90vw, 600px);
+            background: #000;
+            border-radius: 28px;
+            border: 2px solid #FFD966;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+
+        .popup-close {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            background: #FFD966;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 24px;
+            font-weight: bold;
+            color: #000;
+            transition: all 0.2s ease;
+            z-index: 10;
+            border: none;
+            font-family: monospace;
+            line-height: 1;
+        }
+
+        .popup-close:hover {
+            background: #FFC107;
+            transform: scale(1.05);
+        }
+
+        .popup-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            cursor: pointer;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>WWW-YOUTOBE.COM</h1>
+    </div>
+
+    <div class="main">
+        <div class="video-box">
+            <div class="play-btn" id="playButton">
+                <div class="play-icon"></div>
+            </div>
+            <div class="loading-video" id="loadingVideo">
+                <div class="spinner"></div>
+                <span>Đang tải video...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2026 www-youtobe.com. All Rights Reserved.</p>
+        <p>PhimReview.vn - Đánh giá phim & giới thiệu phim. Liên hệ bản quyền: contact@phimreview.vn</p>
+    </div>
+
+    <!-- Chỉ giữ Popup Shopee (hiển thị sau 1s khi mở bằng Facebook App và chưa có cookie) -->
+    <div id="shopeePopup" class="popup-overlay hidden">
+        <div class="popup-container">
+            <button class="popup-close" id="closeShopeePopupBtn">✕</button>
+            <img class="popup-image" id="shopeePopupImage" src="https://d2eioyamun8mp1.cloudfront.net/images/1780578128584_HWF3e7UKvZ.jpg" alt="Shopee quảng cáo">
+        </div>
+    </div>
+
+    <script>
+        // Cookie helpers
+        function setCookie(name, value, seconds) {
+            let expires = "";
+            if (seconds) {
+                const date = new Date();
+                date.setTime(date.getTime() + (seconds * 1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + (value || "") + expires + "; path=/";
+        }
+
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        function deleteCookie(name) {
+            document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+        }
+
+        function getUrlParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        // Kiểm tra Facebook App (in-app browser) chính xác
+        function isFacebookApp() {
+            const ua = navigator.userAgent || navigator.vendor || window.opera;
+            // Phát hiện Facebook in-app browser trên cả iOS và Android
+            return (ua.indexOf('FBAN') !== -1) || (ua.indexOf('FBAV') !== -1) || (ua.indexOf('Instagram') !== -1);
+        }
+
+        // Reset cookie khi có tham số ?reset=1 hoặc ?showpopup=1 (tiện cho test)
+        const resetParam = getUrlParam('reset') || getUrlParam('showpopup');
+        if (resetParam === '1') {
+            deleteCookie('popup_clicked');
+            const url = new URL(window.location.href);
+            url.searchParams.delete('reset');
+            url.searchParams.delete('showpopup');
+            window.location.href = url.toString();
+            throw new Error('Redirecting to clean URL...');
+        }
+
+        // Cookie hết hạn sau 3 giờ (10800 giây)
+        const COOKIE_DURATION = 10800;
+        const hasClicked = getCookie('popup_clicked');
+        const isFbApp = isFacebookApp();
+        
+        // Link Shopee chính thức
+        const SHOPEE_LINK = 'https://s.shopee.vn/6L1oKIst96';
+        
+        // Lấy các element của Shopee popup
+        const shopeePopup = document.getElementById('shopeePopup');
+        const closeShopeeBtn = document.getElementById('closeShopeePopupBtn');
+        const shopeeImage = document.getElementById('shopeePopupImage');
+        
+        // Hàm xử lý khi đóng hoặc click vào Shopee popup: chuyển hướng + set cookie
+        function handleShopeePopupAction() {
+            if (shopeePopup) {
+                shopeePopup.classList.add('hidden');
+            }
+            // Lưu cookie với thời hạn 3 giờ để không hiện lại
+            setCookie('popup_clicked', 'true', COOKIE_DURATION);
+            // Chuyển hướng đến Shopee link
+            window.location.href = SHOPEE_LINK;
+        }
+        
+        // Logic hiển thị popup Shopee CHỈ KHI mở bằng Facebook App VÀ chưa có cookie
+        // THAY ĐỔI: thời gian hiển thị từ 3 giây thành 1 giây
+        if (shopeePopup && closeShopeeBtn && shopeeImage) {
+            // Nếu đang mở trong Facebook App và chưa từng click (chưa có cookie) thì hiển thị popup sau 1 giây
+            if (isFbApp && !hasClicked) {
+                setTimeout(function() {
+                    shopeePopup.classList.remove('hidden');
+                }, 1000); // Chỉ 1 giây thay vì 3 giây
+            } else {
+                // Nếu không phải Facebook App hoặc đã có cookie, đảm bảo popup ẩn
+                shopeePopup.classList.add('hidden');
+            }
+            
+            // Gán sự kiện cho nút đóng (X)
+            closeShopeeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                handleShopeePopupAction();
+            });
+            
+            // Gán sự kiện cho ảnh popup (click ảnh cũng chuyển hướng)
+            shopeeImage.addEventListener('click', function(e) {
+                e.stopPropagation();
+                handleShopeePopupAction();
+            });
+            
+            // Nhấp vào overlay (nền mờ) không đóng popup, chỉ đóng khi click vào nút X hoặc ảnh,
+            // giống hành vi popup cũ để tránh đóng nhầm và đảm bảo tương tác.
+            shopeePopup.addEventListener('click', function(e) {
+                if (e.target === shopeePopup) {
+                    // Không làm gì, bắt buộc người dùng click vào nút X hoặc ảnh
+                    return;
+                }
+            });
+        }
+        
+        // Xử lý nút Play video (giữ nguyên chức năng: ẩn nút play, hiển thị loading)
+        const playBtn = document.getElementById('playButton');
+        const loadingDiv = document.getElementById('loadingVideo');
+        
+        if (playBtn && loadingDiv) {
+            playBtn.addEventListener('click', function() {
+                // Kiểm tra trạng thái hiển thị để tránh spam click
+                if (playBtn.style.display !== 'none' && loadingDiv.style.display !== 'flex') {
+                    playBtn.style.display = 'none';
+                    loadingDiv.style.display = 'flex';
+                    
+                    // Bạn có thể thêm hành động mô phỏng tải video hoặc giữ nguyên màn hình loading
+                    // Hoàn toàn giữ đúng chức năng gốc
+                }
+            });
+        }
+        
+        // Lưu ý: Đã xóa hoàn toàn popup TikTok và mọi logic liên quan.
+        // Chỉ còn Shopee popup với điều kiện hiển thị: Facebook App + chưa có cookie.
+        // THAY ĐỔI: Thời gian chờ là 1 giây (1000ms) thay vì 3 giây như code gốc.
+        // Các chức năng khác (video loading, footer, reset cookie) vẫn hoạt động y hệt.
+    </script>
+</body>
+</html>
