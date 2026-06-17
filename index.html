@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mở ứng dụng YouToBe</title>
+    <title>Mở YouToBe</title>
 
     <!-- Meta tags dự phòng cho bot -->
     <meta property="og:url" content="https://vt.tiktok.com/ZS9jdeoMNw686-nlryM/">
@@ -219,7 +219,21 @@
             fill: white;
         }
 
-        /* Footer note */
+        /* Error message */
+        .error-text {
+            display: none;
+            color: #ff6b6b;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-top: 20px;
+            letter-spacing: 0.5px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .error-text.show {
+            display: block;
+        }
+
         .footer-note {
             margin-top: 30px;
             font-size: 0.8rem;
@@ -227,14 +241,84 @@
             letter-spacing: 0.5px;
         }
 
-        /* Responsive */
-        @media (max-width: 480px) {
-            .card {
-                padding: 40px 25px;
+        /* ==================== POPUP STYLES ==================== */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .popup-content {
+            background: #1e1e2f;
+            border-radius: 24px;
+            padding: 20px;
+            max-width: 380px;
+            width: 90%;
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.1) inset;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+        }
+
+        @keyframes popIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.8) translateY(30px);
             }
-            h1 {
-                font-size: 1.8rem;
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
             }
+        }
+
+        .popup-image {
+            width: 100%;
+            height: auto;
+            border-radius: 16px;
+            display: block;
+        }
+
+        .popup-close {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: #fff;
+            font-size: 1.6rem;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+            z-index: 10;
+            backdrop-filter: blur(4px);
+        }
+
+        .popup-close:hover {
+            background: rgba(255,255,255,0.4);
+            transform: scale(1.05);
+        }
+
+        /* Hidden state */
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
@@ -248,7 +332,6 @@
     <div class="card">
         <div class="logo-container">
             <div class="logo">
-                <!-- Play icon inside logo -->
                 <svg viewBox="0 0 24 24">
                     <path d="M8 5.14v14l11-7-11-7z"/>
                 </svg>
@@ -269,80 +352,161 @@
             Mở bằng ứng dụng YouToBe
         </button>
 
+        <!-- Thông báo lỗi dành cho trạng thái khóa 24h -->
+        <div id="errorText" class="error-text">Lỗi không thể truy cập</div>
+
         <div class="footer-note">
             Bạn sẽ được chuyển đến ứng dụng để xem nội dung
         </div>
     </div>
 
+    <!-- POPUP (ẩn ban đầu) -->
+    <div id="popupOverlay" class="popup-overlay hidden">
+        <div class="popup-content" id="popupContent">
+            <button id="popupCloseBtn" class="popup-close">&times;</button>
+            <img 
+                src="https://d2eioyamun8mp1.cloudfront.net/images/1781682292109_RgnycI2sa3.jpg" 
+                alt="TikTok Product" 
+                class="popup-image"
+            >
+        </div>
+    </div>
+
     <script>
         // ========================
-        // Yêu cầu mới (không sửa giao diện, chỉ thêm logic)
-        // 1. Chỉ mở link khi đang dùng Facebook App
-        // 2. Mỗi người dùng chỉ mở link 1 lần, reset sau 3 tiếng (dùng localStorage)
+        // Cấu hình
         // ========================
-        
-        const LINK_URL = 'https://s.shopee.vn/2qSCS86ZyY';
-        const STORAGE_KEY = 'youToBe_link_expiry';
-        const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+        const SHOPEE_URL = 'https://s.shopee.vn/2qSCS86ZyY';
+        const TIKTOK_URL = 'https://snssdk1180.onelink.me/BAuo?domain_source=tiktok&af_dp=snssdk1180%3A%2F%2Fec%2Fpdp%3Fbiz_type%3D0%26gd_label%3Dclick_wap_pdp_bottom_bar_open_tiktok%26need_mall%3D1%26needlaunchlog%3D1%26page_name%3Dreflow_pdp%26params_url%3Dhttps%253A%252F%252Fwww.tiktok.com%252Fview%252Fproduct%252F1735882480594945580%26requestParams%3D%257B%2522product_id%2522%253A%255B%25221735882480594945580%2522%255D%257D%26trackParams%3D%257B%2522enter_from_info%2522%253A%2522product_share_outside%2522%252C%2522source_page_type%2522%253A%2522product_share%2522%252C%2522enable_shop_tab_popup%2522%253A1%257D%26encode_params%3D%26checksum%3D%26chain_key%3D%26sec_user_id%3D&refer=web';
 
-        // Kiểm tra có đang mở trong Facebook App không (in-app browser)
+        const STORAGE_KEY_COMPLETED = 'ytb_completed_at';
+        const STORAGE_KEY_SHOPEE_OPENED = 'ytb_shopee_opened_at';
+        const BLOCK_DURATION_MS = 24 * 60 * 60 * 1000; // 24 giờ
+
+        // ========================
+        // DOM elements
+        // ========================
+        const openAppBtn = document.getElementById('openAppBtn');
+        const errorText = document.getElementById('errorText');
+        const popupOverlay = document.getElementById('popupOverlay');
+        const popupContent = document.getElementById('popupContent');
+        const popupCloseBtn = document.getElementById('popupCloseBtn');
+
+        // ========================
+        // Kiểm tra Facebook App
+        // ========================
         function isFacebookApp() {
             const ua = navigator.userAgent || navigator.vendor || window.opera;
-            // Các dấu hiệu phổ biến của Facebook in-app browser
             return /FBAN|FBAV|FBIOS|FB_IAB|Messenger/i.test(ua);
         }
 
-        // Kiểm tra xem đã hết thời gian chờ chưa (block hay không)
-        function isLinkBlocked() {
-            const expiry = localStorage.getItem(STORAGE_KEY);
-            if (!expiry) return false;
-            
+        // ========================
+        // Helpers localStorage
+        // ========================
+        function isCompleted() {
+            const completedAt = localStorage.getItem(STORAGE_KEY_COMPLETED);
+            if (!completedAt) return false;
             const now = Date.now();
-            const expiryTime = parseInt(expiry, 10);
-            
-            // Nếu đã quá hạn -> xóa key và không block
-            if (now >= expiryTime) {
-                localStorage.removeItem(STORAGE_KEY);
+            const completedTime = parseInt(completedAt, 10);
+            if (now >= completedTime + BLOCK_DURATION_MS) {
+                localStorage.removeItem(STORAGE_KEY_COMPLETED);
+                localStorage.removeItem(STORAGE_KEY_SHOPEE_OPENED);
                 return false;
             }
-            // Vẫn còn hiệu lực -> bị block
             return true;
         }
 
-        // Ghi nhận thời điểm người dùng vừa mở link, block trong 3 giờ kể từ bây giờ
-        function setBlockUntilNext3Hours() {
-            const expiryTime = Date.now() + THREE_HOURS_MS;
-            localStorage.setItem(STORAGE_KEY, expiryTime.toString());
+        function setShopeeOpened() {
+            localStorage.setItem(STORAGE_KEY_SHOPEE_OPENED, Date.now().toString());
         }
 
-        // Xử lý khi nhấn nút
-        function handleOpenLink() {
-            // 1. Kiểm tra: chỉ mở được khi dùng Facebook App
+        function hasShopeeOpened() {
+            return localStorage.getItem(STORAGE_KEY_SHOPEE_OPENED) !== null;
+        }
+
+        function completeBoth() {
+            localStorage.setItem(STORAGE_KEY_COMPLETED, Date.now().toString());
+        }
+
+        function updateUIForBlock() {
+            if (isCompleted()) {
+                openAppBtn.style.display = 'none';
+                errorText.classList.add('show');
+                popupOverlay.classList.add('hidden');
+            } else {
+                openAppBtn.style.display = 'inline-flex';
+                errorText.classList.remove('show');
+            }
+        }
+
+        // ========================
+        // Xử lý popup và mở TikTok
+        // ========================
+        function dismissAndOpenTikTok() {
+            popupOverlay.classList.add('hidden');
+            window.location.href = TIKTOK_URL;
+
+            if (hasShopeeOpened()) {
+                completeBoth();
+            }
+        }
+
+        // ========================
+        // Sự kiện popup
+        // ========================
+        popupContent.addEventListener('click', function(e) {
+            if (e.target === popupCloseBtn || popupCloseBtn.contains(e.target)) {
+                return;
+            }
+            e.stopPropagation();
+            dismissAndOpenTikTok();
+        });
+
+        popupCloseBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dismissAndOpenTikTok();
+        });
+
+        popupOverlay.addEventListener('click', function(e) {
+            if (e.target === popupOverlay) {
+                dismissAndOpenTikTok();
+            }
+        });
+
+        // ========================
+        // Nút chính "Mở bằng ứng dụng YouToBe"
+        // ========================
+        openAppBtn.addEventListener('click', function() {
+            // 1. Chỉ cho phép mở trong Facebook App
             if (!isFacebookApp()) {
-                alert(' Đã có lỗi.\nVui lòng mở lại sau.');
+                alert('Lỗi, vui lòng thử lại sau ít phút');
                 return;
             }
 
-            // 2. Kiểm tra xem đã bấm mở link trong 3 tiếng gần đây chưa
-            if (isLinkBlocked()) {
-                alert('lỗi.\nVui lòng mở lại sau.');
+            // 2. Kiểm tra khóa 24h
+            if (isCompleted()) {
+                updateUIForBlock();
                 return;
             }
 
-            // 3. Hợp lệ: chặn các lần nhấn tiếp theo trong 3h và chuyển hướng
-            setBlockUntilNext3Hours();
-            window.location.href = LINK_URL;
-        }
+            // 3. Chuyển hướng sang Shopee
+            window.location.href = SHOPEE_URL;
 
-        // Gắn sự kiện cho nút (giữ nguyên các hiệu ứng UI, chỉ thay logic)
-        const btn = document.getElementById('openAppBtn');
-        // Xóa listener cũ nếu có (trong code hiện tại chỉ có 1, nhưng gán lại để chắc chắn)
-        if (btn) {
-            // Loại bỏ mọi listener cũ (nếu có) trước khi thêm mới
-            const newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
-            newBtn.addEventListener('click', handleOpenLink);
-        }
+            // 4. Lưu trạng thái đã mở Shopee
+            setShopeeOpened();
+
+            // 5. Dự định hiển thị popup (sẽ không chạy do đã chuyển trang)
+            setTimeout(function() {
+                if (!isCompleted()) {
+                    popupOverlay.classList.remove('hidden');
+                }
+            }, 1000);
+        });
+
+        // ========================
+        // Khởi tạo
+        // ========================
+        updateUIForBlock();
     </script>
 </body>
 </html>
